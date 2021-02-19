@@ -3,11 +3,24 @@ from caps_network_test import CapsNet
 from skvideo.io import vread
 import numpy as np
 from PIL import Image
-from scipy.misc import imresize
+import PIL
 import os
 import config
 import time
-
+try:
+    from scipy.misc import imresize
+except ImportError:
+    # scipy.misc.resize have been removed in scipy 1.3.0    
+    def imresize(arr,size,interp='nearest'):
+        if interp=='nearest':
+            #PIL.Image.NEAREST (use nearest neighbour), PIL.Image.BILINEAR (linear interpolation), PIL.Image.BICUBIC (cubic spline interpolation), or PIL.Image.LANCZOS
+            resample = PIL.Image.NEAREST
+        else:
+            raise(NotImplementedError)
+        size_switch = (size[1],size[0])
+        return(np.array(Image.fromarray(arr).resize(size=size_switch,resample=resample)))
+               
+# Need pip install sk-video
 
 def load_video(video_name):
     video = vread(video_name)
