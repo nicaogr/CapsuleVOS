@@ -1,7 +1,7 @@
-import config
+from CapsuleVOS import config
 import tensorflow as tf
 import sys
-from network_parts.lstm_capsnet_cond2_test import create_network
+from CapsuleVOS.network_parts.lstm_capsnet_cond2_test import create_network
 
 
 class CapsNet(object):

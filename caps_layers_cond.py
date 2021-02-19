@@ -1,7 +1,7 @@
 import tensorflow as tf
 import numpy as np
 from functools import reduce
-import config
+from CapsuleVOS import config
 
 epsilon = 1e-7
 

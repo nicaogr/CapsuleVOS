@@ -1,12 +1,13 @@
 import tensorflow as tf
-from caps_network_test import CapsNet
+from CapsuleVOS.caps_network_test import CapsNet
 from skvideo.io import vread
 import numpy as np
 from PIL import Image
 import PIL
 import os
-import config
+from  CapsuleVOS import config
 import time
+from os.path import join
 try:
     from scipy.misc import imresize
 except ImportError:
@@ -18,7 +19,10 @@ except ImportError:
         else:
             raise(NotImplementedError)
         size_switch = (size[1],size[0])
-        return(np.array(Image.fromarray(arr).resize(size=size_switch,resample=resample)))
+        im  = Image.fromarray(arr)
+        im_resized = im.resize(size=size_switch,resample=resample)
+        np_im = np.array(im_resized)
+        return(np_im)
                
 # Need pip install sk-video
 
@@ -35,13 +39,27 @@ def load_video(video_name):
     
     return resized_video / 255., (h, w)
 
+def load_first_frame_and_resize_convL(frame_name):
+    image = Image.open(frame_name).convert('P')
+    #image.show()
+    #print('unique L',np.unique(image),image.size)
+    palette = image.getpalette()
+    #print('palette',palette)
+    size = config.hr_frame_size
+    size_switch = (size[1],size[0])
+    resample = PIL.Image.NEAREST 
+    resized_image = image.resize(size=size_switch,resample=resample)
+    resized_image = np.array(resized_image)
+    return resized_image, palette
 
 def load_first_frame(frame_name):
     image = Image.open(frame_name)
     palette = image.getpalette()
+    #print('palette',palette)    
     image_np = np.array(image)
-    
-    return imresize(image_np, config.hr_frame_size, interp='nearest'), palette
+    resized_image = imresize(image_np, config.hr_frame_size, interp='nearest')
+    #print(resized_image.size)
+    return resized_image, palette
 
 
 def process_first_frame(first_frame):
@@ -131,7 +149,8 @@ def get_seg_for_clip_gt(sess, capsnet, clip, frame_start, lstm_cond, lstm_cond_l
     return seg_pred, lstm_cond, lstm_cond_lr, overlap_frames, crop_to_use
     
 
-def generate_inference(sess, capsnet, video, segmentations, orig_dim, vid_name, img_palette):
+def generate_inference(sess, capsnet, video, segmentations, orig_dim, vid_name, img_palette,
+                       output_folder='Output',list_output_name=None):
     orig_h, orig_w = orig_dim
     n_objects = int(max(segmentations.keys()))
     
@@ -148,8 +167,11 @@ def generate_inference(sess, capsnet, video, segmentations, orig_dim, vid_name, 
     cur_i = np.ones((n_objects + 1,), np.uint8)
     overlaps = np.ones((n_objects + 1,), np.uint8)
 
-    vid_dir = 'Output/' + vid_name + '/'
-    mkdir(vid_dir)
+    if output_folder=='Output':
+        vid_dir = join(output_folder,vid_name) 
+    else:
+        vid_dir = output_folder
+    mkdir(output_folder)
 
     for i in range(f):
         for color in range(1, n_objects + 1):
@@ -207,7 +229,10 @@ def generate_inference(sess, capsnet, video, segmentations, orig_dim, vid_name, 
 
         final_segmentation[:, :, 0] = np.argmax(segmentation_maps[cur_i, :, :, range(n_objects + 1)], axis=0)
 
-        frame_name = vid_dir + ('%d.png' % i).zfill(5)
+        if  list_output_name is None:          
+            frame_name = join(vid_dir,('%d.png' % i).zfill(5))
+        else:
+            frame_name = join(vid_dir,list_output_name[i])
 
         fb_segs_argmax = imresize(final_segmentation[:, :, 0].astype(dtype=np.uint8), (orig_h, orig_w), interp='nearest')
         c = Image.fromarray(fb_segs_argmax, mode='P')
@@ -235,9 +260,10 @@ def inf():
         video_name = '03deb7ad95'
         video, orig_dims = load_video('./Examples/' + video_name + '.mp4')
         first_frame, img_palette = load_first_frame('./Examples/00110.png')
-        
+        print('first',first_frame.shape)
         processed_first_frame = process_first_frame(first_frame)
-        
+        print('pro',processed_first_frame.keys())
+
         start_time = time.time()
         print('Starting Inference')
         

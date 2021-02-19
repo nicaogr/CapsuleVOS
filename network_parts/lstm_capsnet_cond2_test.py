@@ -1,6 +1,6 @@
 import tensorflow as tf
-from caps_layers_cond import create_prim_conv3d_caps, create_conv3d_caps, layer_shape, create_conv3d_caps_cond
-import config
+from CapsuleVOS.caps_layers_cond import create_prim_conv3d_caps, create_conv3d_caps, layer_shape, create_conv3d_caps_cond
+from CapsuleVOS import config
 
 
 # Basic network:
